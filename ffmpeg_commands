@@ -1,0 +1,18 @@
+>> ffmpeg -i audio.wav
+You can check the available encoders with 
+>> ffmpeg -encoders
+# enable new codec
+./configure  --enable-libmp3lame
+make
+make install
+
+## convert
+ffmpeg -i eg/video.mp4 -acodec libmp3lame -ab 192k audio.mp3
+# -i audio.wav
+# This tells ffmpeg that we want it to take audio.wav and process it.
+# -acodec mp3
+# This tells ffmpeg to use the "mp3" audio codec to create the target file.
+# -ab 192k
+# This tells ffmpeg to use an audio bitrate of 192 kbit/s. The higher this value, the better the audio quality, but the larger the resulting file. 192 kbit/s is pretty good quality audio.
+# audio.mp3
+#Dump the encoded audio data into a file called audio.mp3.
