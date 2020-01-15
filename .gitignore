@@ -1,3 +1,4 @@
 .idea
 env/*
-eg/*
+media/*
+__pycache__/*

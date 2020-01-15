@@ -1,33 +1,47 @@
-import urllib
-from urllib.request import Request, urlopen
-from urllib.parse import urlparse, parse_qs, unquote
-import pprint
+from __future__ import absolute_import, unicode_literals
+import subprocess
+import json
 
+from find_it.ffmpeg import convert_to_mp3
+from task_queue.celery_app import c_app
+
+dir = '/home/pghimire/examples/pysound/media/download/%(title)s-acodec:%(acodec)s-abr:%(abr)s.%(ext)s'
+d = '/home/pghimire/examples/pysound/media/download/file.json'
+
+@c_app.task
 def download(url):
     try:
-        video_id = parse_qs(urlparse(url).query)['v'][0]
-        url_data = urlopen('https://www.youtube.com/get_video_info?&video_id=' + video_id).read()
-        url_info = parse_qs(unquote(url_data.decode('utf-8')))
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(url_info)
-        # token_value = url_info['token'][0]
-        # download_url = "https://www.youtube.com/get_video?video_id={0}&t={1}&fmt=18".format(video_id, token_value)
-        video_title = url_info['title'][0] if 'title' in url_info else ''
-        print(video_title)
-        filename = video_title.encode('ascii', 'ignore').decode('ascii').replace("/", "-") + '.mp4'
-        try:
-            pass
-            # content = urlopen(download_url).read()
-            # stream = open(filename, 'wb')
-            # stream.write(url_info)
-            # stream.close()
-        except Exception as e:
-            print(e)
-    except urllib.request.HTTPError as err:
+        check_process = subprocess.Popen(['youtube-dl', '-j', '-o', dir, url], stdin=subprocess.PIPE,
+                                         stdout=subprocess.PIPE)
+    except subprocess.CalledProcessError as err:
         print(err)
-    return filename
+    else:
+        for line in check_process.stdout.readlines():
+            json_data = json.loads(line.decode('utf-8'))
+            filesize = int(json_data['requested_formats'][0]['filesize']) + int(json_data['requested_formats'][0]['filesize'])
+            title = json_data['fulltitle']
+            duration = json_data['duration']
+            acodec = json_data['acodec']
+            bitrate = json_data['abr']
+            ext = json_data['ext']
+        # if int(filesize) > 1*10**6:
+        #     raise Exception('Video size too large')
+
+        try:
+            # process = subprocess.Popen(['youtube-dl', '--max-filesize', '25k', '-R' '5', '-o', base_dir, url],
+            #                            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            process = subprocess.Popen(['youtube-dl', '-o', dir, url],
+                                       stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        except subprocess.CalledProcessError as err:
+            print(err)
+        else:
+            print('Success')
 
 
 url = "https://www.youtube.com/watch?v=S2ILybG36-E"
-download(url)
-# print(result)
+u = "https://www.youtube.com/watch?v=9tjdswqGGVg"
+s= "https://www.youtube.com/watch?v=668nUCeBHyY"
+
+# download(s)
+download.delay(s)
+print('running')
